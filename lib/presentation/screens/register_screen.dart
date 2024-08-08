@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:form_app/presentation/blocs/register_cubit/register_cubit.dart';
 import 'package:form_app/presentation/widgets/widget.dart';
 
 class RegisterScreen extends StatelessWidget {
@@ -10,7 +12,12 @@ class RegisterScreen extends StatelessWidget {
       appBar: AppBar(
         title: const Text('Nuevo usuario'),
       ),
-      body: const _RegisterView(),
+      //* Hay que envolver el arbol de widgets en el provider que vamos a usar
+      //* Así tendremos acceso a este gestor de estado
+      body: BlocProvider(
+        create: (context) => RegisterCubit(),
+        child: const _RegisterView()
+      ),
     );
   }
 }
@@ -37,49 +44,32 @@ class _RegisterView extends StatelessWidget {
   }
 }
 
-class  _RegisterForm extends StatefulWidget {
+class  _RegisterForm extends StatelessWidget {
   const _RegisterForm();
 
   @override
-  State<_RegisterForm> createState() => _RegisterFormState();
-}
-
-class _RegisterFormState extends State<_RegisterForm> {
-  final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
-  String userName = '';
-  String email = '';
-  String password = '';
-  @override
   Widget build(BuildContext context) {
+    //*Referencia a nuestro cubit
+    final registerCubit = context.watch<RegisterCubit>();
+    final username = registerCubit.state.userName;
+    final email = registerCubit.state.email;
+    final password = registerCubit.state.password;
     return Form(
-      key: _formKey,
       child: Column(
         children: [
           CustomTextFormField(
             label: 'Nombre de uruario',
             icon: const Icon(Icons.supervised_user_circle_rounded),
-            onChanged: (value) => userName = value ,
-            validator: (value) {
-              if (value ==  null || value.isEmpty ) return 'Campo requerido'; 
-              if (value.trim().isEmpty ) return 'Campo requerido'; 
-              if (value.length < 6 ) return 'Debe ser más de 6 letras'; 
-              return null;
-            },
+            onChanged: registerCubit.userNameChanged,
+            errorMessage: username.errorMessage
 
           ),
           const SizedBox(height: 20),
           CustomTextFormField(
             label: 'Correo electrónico',
             icon: const Icon(Icons.email_rounded),
-            onChanged: (value) => email = value ,
-            validator: (value) {
-              if (value ==  null || value.isEmpty ) return 'Campo requerido'; 
-              if (value.trim().isEmpty ) return 'Campo requerido'; 
-              final emailPattern = RegExp(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$');
-              if (!emailPattern.hasMatch(value)) return 'Debe ingresar un correo valido';
-
-              return null;
-            },
+            onChanged: registerCubit.emailChanged,
+            errorMessage: email.errorMessage
 
           ),
 
@@ -88,22 +78,15 @@ class _RegisterFormState extends State<_RegisterForm> {
             label: 'Contraseña',
             icon: const Icon(Icons.lock),
             obscureText: true,
-            onChanged: (value) => password = value ,
-            validator: (value) {
-              if (value ==  null || value.isEmpty ) return 'Campo requerido'; 
-              if (value.trim().isEmpty ) return 'Campo requerido'; 
-              if (value.length < 6 ) return 'Debe ser más de 6 letras'; 
-              return null;
-            },
+            onChanged: registerCubit.passwordChanged,
+            errorMessage: password.errorMessage
 
           ),
           const SizedBox(height: 20),
           FilledButton.tonalIcon(
+
             onPressed: () {
-              final isValid = _formKey.currentState!.validate();
-              if (!isValid) return;
-              // ignore: avoid_print
-              print('$userName, $email, $password');
+              registerCubit.onSubmit();
             }, 
             icon: const Icon(Icons.save),
             label: const Text('Crear usuario')
